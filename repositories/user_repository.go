@@ -39,7 +39,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (domain.User, error) {
 		return domain.User{}, err
 	}
 	if result.RowsAffected == 0 {
-		return domain.User{}, errors.New("no user")
+		return domain.User{}, errors.New("no user!")
 	}
 	return user, nil
 }
