@@ -10,8 +10,8 @@ import (
 
 type (
 	UserController struct {
-		userService interfaces.IUserService `di.inject:"userService"`
-		validator   *validator.Validate     `di.inject:"validator"`
+		userService interfaces.IUserService `di.inject:"service::user"`
+		validator   *validator.Validate     `di.inject:"util::validator"`
 	}
 )
 

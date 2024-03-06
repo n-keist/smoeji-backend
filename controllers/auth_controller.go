@@ -9,8 +9,8 @@ import (
 )
 
 type AuthController struct {
-	userService *services.UserService `di.inject:"userService"`
-	validate    *validator.Validate   `di.inject:"validator"`
+	userService *services.UserService `di.inject:"service::user"`
+	validate    *validator.Validate   `di.inject:"util::validator"`
 }
 
 func (ac *AuthController) Login(ctx *fiber.Ctx) error {

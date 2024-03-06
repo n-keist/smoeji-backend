@@ -7,9 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
 )
 
-type AuthMiddleware struct {
-	//userService *services.UserService `di.inject:"userService"`
-}
+type AuthMiddleware struct{}
 
 func (am *AuthMiddleware) GetMiddleware() func(*fiber.Ctx) error {
 	return keyauth.New(keyauth.Config{

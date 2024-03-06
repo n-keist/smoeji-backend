@@ -10,8 +10,8 @@ import (
 
 type UserService struct {
 	interfaces.IUserService
-	userRepository         *repositories.UserRepository         `di.inject:"userRepository"`
-	refreshTokenRepository *repositories.RefreshTokenRepository `di.inject:"refreshTokenRepository"`
+	userRepository         *repositories.UserRepository         `di.inject:"repository::user"`
+	refreshTokenRepository *repositories.RefreshTokenRepository `di.inject:"repository::refreshToken"`
 }
 
 func (us *UserService) GetUsers() ([]domain.User, error) {

@@ -8,7 +8,7 @@ import (
 )
 
 type UserRepository struct {
-	database *gorm.DB `di.inject:"database"`
+	database *gorm.DB `di.inject:"util::database"`
 }
 
 func (ur *UserRepository) GetUsers() ([]domain.User, error) {

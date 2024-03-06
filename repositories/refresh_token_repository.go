@@ -8,7 +8,7 @@ import (
 )
 
 type RefreshTokenRepository struct {
-	database *gorm.DB `di.inject:"database"`
+	database *gorm.DB `di.inject:"util::database"`
 }
 
 func (repository *RefreshTokenRepository) CreateToken(user domain.User) (*domain.RefreshToken, error) {
