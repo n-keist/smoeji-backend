@@ -4,6 +4,7 @@ import (
 	"errors"
 	"smoeji/domain"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -39,7 +40,18 @@ func (ur *UserRepository) GetUserByEmail(email string) (domain.User, error) {
 		return domain.User{}, err
 	}
 	if result.RowsAffected == 0 {
-		return domain.User{}, errors.New("no user!")
+		return domain.User{}, errors.New("no user")
 	}
+	return user, nil
+}
+
+func (ur *UserRepository) GetUserById(id uuid.UUID) (domain.User, error) {
+	var user domain.User
+
+	result := ur.database.First(&user, "id = ?", id)
+	if err := result.Error; err != nil {
+		return domain.User{}, err
+	}
+
 	return user, nil
 }

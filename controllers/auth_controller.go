@@ -13,6 +13,23 @@ type AuthController struct {
 	validate    *validator.Validate   `di.inject:"util::validator"`
 }
 
+func (ac *AuthController) Register(ctx *fiber.Ctx) error {
+	var createUser domain.UserCreateRequest
+	err := ctx.BodyParser(&createUser)
+	if err != nil {
+		return err
+	}
+	err = ac.validate.Struct(&createUser)
+	if err != nil {
+		return err
+	}
+	user, err := ac.userService.CreateUser(createUser)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(&user)
+}
+
 func (ac *AuthController) Login(ctx *fiber.Ctx) error {
 	var loginRequest domain.UserLoginRequest
 	err := ctx.BodyParser(&loginRequest)
@@ -24,6 +41,19 @@ func (ac *AuthController) Login(ctx *fiber.Ctx) error {
 		return err
 	}
 	loginResult, err := ac.userService.LoginUser(loginRequest)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(&loginResult)
+}
+
+func (ac *AuthController) RefreshToken(ctx *fiber.Ctx) error {
+	var refreshRequest domain.RefreshTokenRefreshRequest
+	err := ctx.BodyParser(&refreshRequest)
+	if err != nil {
+		return err
+	}
+	loginResult, err := ac.userService.RefreshToken(refreshRequest.Token)
 	if err != nil {
 		return err
 	}

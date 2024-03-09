@@ -11,7 +11,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/goioc/di"
 )
 
@@ -24,14 +23,18 @@ func main() {
 	app.Use(helmet.New())
 	app.Use(logger.New())
 
-	app.Get("/_monitor", monitor.New())
+	authGroup := app.Group("/auth")
+	authGroup.Post("/register", di.GetInstance(deps.Controller_Auth).(*controllers.AuthController).Register)
+	authGroup.Post("/login", di.GetInstance(deps.Controller_Auth).(*controllers.AuthController).Login)
+	authGroup.Post("/refresh",
+		di.GetInstance(deps.Middleware_Auth).(*middleware.AuthMiddleware).GetMiddleware(),
+		di.GetInstance(deps.Controller_Auth).(*controllers.AuthController).RefreshToken,
+	)
 
-	app.Post("/login", di.GetInstance(deps.Controller_Auth).(*controllers.AuthController).Login)
 	app.Get("/users",
 		di.GetInstance(deps.Middleware_Auth).(*middleware.AuthMiddleware).GetMiddleware(),
 		di.GetInstance(deps.Controller_User).(*controllers.UserController).GetUsers,
 	)
-	app.Post("/users", di.GetInstance(deps.Controller_User).(*controllers.UserController).CreateUser)
 
 	log.Fatal(app.Listen(":42069"))
 }

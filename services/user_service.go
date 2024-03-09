@@ -55,3 +55,27 @@ func (us *UserService) LoginUser(request domain.UserLoginRequest) (*domain.UserL
 		RefreshToken: refreshToken.Value,
 	}, nil
 }
+
+func (us *UserService) RefreshToken(token string) (*domain.UserLoginResponse, error) {
+	refreshToken, err := us.refreshTokenRepository.GetTokenByValue(token)
+	if err != nil {
+		return &domain.UserLoginResponse{}, err
+	}
+	user, err := us.userRepository.GetUserById(refreshToken.UserID)
+	if err != nil {
+		return &domain.UserLoginResponse{}, err
+	}
+	newToken, err := us.refreshTokenRepository.CreateToken(user)
+	if err != nil {
+		return &domain.UserLoginResponse{}, err
+	}
+	jwt, err := util.CreateJWT(user)
+	if err != nil {
+		return nil, err
+	}
+	return &domain.UserLoginResponse{
+		User:         user,
+		Token:        jwt,
+		RefreshToken: newToken.Value,
+	}, nil
+}
