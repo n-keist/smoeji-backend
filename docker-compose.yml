@@ -1,0 +1,44 @@
+version: '3.9'
+name: smoeji
+
+services:
+  db:
+    image: postgres
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready",
+          "-d smoeji",
+          "-q",
+          "-t 5",
+          "-U smoeji"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: smoeji
+      POSTGRES_DB: smoeji
+    ports:
+      - "5432:5432"
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "42069:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    environment:
+      - SMOEJI=true
+      - DB_HOST=db
+      - DB_USER=smoeji
+      - DB_PORT=5432
+      - DB_DATABASE=smoeji
+      - DB_PASSWORD=password
+      - DB_TIMEZONE=Europe/Berlin
+      - JWT_SECRET=lemongrass

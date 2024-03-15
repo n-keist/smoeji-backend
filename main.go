@@ -36,5 +36,11 @@ func main() {
 		di.GetInstance(deps.Controller_User).(*controllers.UserController).GetUsers,
 	)
 
-	log.Fatal(app.Listen(":42069"))
+	app.Get("/_healthy", func(c *fiber.Ctx) error {
+		return c.Status(200).JSON(fiber.Map{
+			"healthy": true,
+		})
+	})
+
+	log.Fatal(app.Listen(":3000"))
 }

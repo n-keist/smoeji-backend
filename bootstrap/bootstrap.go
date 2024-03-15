@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	db_plugins "smoeji/bootstrap/database/plugins"
 	"smoeji/controllers"
 	"smoeji/deps"
 	"smoeji/domain"
@@ -93,7 +94,9 @@ func registerMiddlewares() {
 func loadDotEnv() {
 	err := godotenv.Load()
 	if err != nil {
-		panic(err)
+		if os.Getenv("SMOEJI") != "true" {
+			panic(err)
+		}
 	}
 }
 
@@ -115,6 +118,8 @@ func connectPostgres() *gorm.DB {
 	if err != nil {
 		log.Fatalln("could not connect to db ", err)
 	}
+
+	db.Use(&db_plugins.UuidDbPlugin{})
 
 	db.AutoMigrate(&domain.User{}, &domain.RefreshToken{})
 
