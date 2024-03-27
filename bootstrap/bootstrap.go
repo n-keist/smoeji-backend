@@ -135,7 +135,7 @@ func connectPostgres() *gorm.DB {
 func registerReflect(key string, value reflect.Type) {
 	o, err := di.RegisterBean(key, value)
 	if err != nil {
-		fmt.Errorf("could not register %s -> %s", key, err)
+		fmt.Printf("could not register %s -> %s", key, err)
 	}
 	if o {
 		fmt.Printf("%s was overriden", key)
