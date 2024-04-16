@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"smoeji/bootstrap"
 	"smoeji/controllers"
 	"smoeji/deps"
@@ -12,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/helmet"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/goioc/di"
+	"github.com/nats-io/nats.go"
 )
 
 func main() {
@@ -41,6 +44,17 @@ func main() {
 			"healthy": true,
 		})
 	})
+	natsConnection := di.GetInstance(deps.Util_PubSub).(*nats.Conn)
+	go handleNatsMessages(natsConnection)
 
 	log.Fatal(app.Listen(":3000"))
+}
+
+func handleNatsMessages(natsConnection *nats.Conn) {
+	_, err := natsConnection.Subscribe(os.Getenv("NATS_PG_CRUD_SUB"), func(m *nats.Msg) {
+		fmt.Println(string(m.Data))
+	})
+	if err != nil {
+		panic(err)
+	}
 }

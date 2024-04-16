@@ -1,31 +1,34 @@
 package repositories
 
 import (
-	"errors"
+	"context"
 	"smoeji/domain"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/vingarcia/ksql"
 )
 
 type UserRepository struct {
-	database *gorm.DB `di.inject:"util::database"`
+	database *ksql.DB `di.inject:"util::database"`
 }
+
+var usersTable = ksql.NewTable("users", "id")
+var ctx = ksql.InjectLogger(context.Background(), ksql.Logger)
 
 func (ur *UserRepository) GetUsers() ([]domain.User, error) {
 	var users []domain.User
 
-	result := ur.database.Find(&users)
-	if err := result.Error; err != nil {
+	err := ur.database.Query(ctx, &users, "FROM users")
+	if err != nil {
 		return nil, err
 	}
 	return users, nil
 }
 
 func (ur *UserRepository) CreateUser(user domain.User) (domain.User, error) {
-	result := ur.database.Create(&user)
+	err := ur.database.Insert(ctx, usersTable, &user)
 
-	if err := result.Error; err != nil {
+	if err != nil {
 		return domain.User{}, err
 	}
 
@@ -35,21 +38,19 @@ func (ur *UserRepository) CreateUser(user domain.User) (domain.User, error) {
 func (ur *UserRepository) GetUserByEmail(email string) (domain.User, error) {
 	var user domain.User
 
-	result := ur.database.First(&user, "email = ?", email)
-	if err := result.Error; err != nil {
+	err := ur.database.QueryOne(ctx, &user, "FROM users WHERE email = $1;", email)
+	if err != nil {
 		return domain.User{}, err
 	}
-	if result.RowsAffected == 0 {
-		return domain.User{}, errors.New("no user")
-	}
+
 	return user, nil
 }
 
 func (ur *UserRepository) GetUserById(id uuid.UUID) (domain.User, error) {
 	var user domain.User
 
-	result := ur.database.First(&user, "id = ?", id)
-	if err := result.Error; err != nil {
+	err := ur.database.QueryOne(ctx, &user, "FROM users WHERE id = $1", id)
+	if err != nil {
 		return domain.User{}, err
 	}
 

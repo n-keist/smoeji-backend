@@ -1,0 +1,32 @@
+listener:
+  slotName: myslot_1
+  refreshConnection: 30s
+  heartbeatInterval: 10s
+  filter:
+    tables:
+      users:
+        - insert
+        - update
+      refresh_tokens:
+        - insert
+        - update
+  topicsMap:
+    schema_table_name: "notifier"
+logger:
+  level: info
+  fmt: json
+database:
+  host: db
+  port: 5432
+  name: smoeji
+  user: smoeji
+  password: password
+  debug: false
+publisher:
+  type: nats
+  address: nats_broker:4222
+  topic: "wal_listener"
+  topicPrefix: ""
+monitoring:
+  sentryDSN: ""
+  promAddr: ":2112"

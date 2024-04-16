@@ -24,6 +24,29 @@ services:
       POSTGRES_DB: smoeji
     ports:
       - "5432:5432"
+    volumes:
+      - ./_v/postgres:/docker-entrypoint-initdb.d/
+  nats:
+    image: nats:alpine
+    container_name: nats_broker
+    restart: always
+    command: -c /etc/nats/nats.conf
+    ports:
+      - "4222:4222" # client port
+      - "6222:6222" # cluster port
+      - "8222:8222" # monitoring port
+    volumes:
+      - ./_v/nats/nats.conf:/etc/nats/nats.conf
+      - ./_v/_storage:/data
+  wal-listener:
+    image: ihippik/wal-listener:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./_v/wal-listener/config.yml:/app/config.yml
   backend:
     build: .
     restart: unless-stopped
@@ -42,3 +65,5 @@ services:
       - DB_PASSWORD=password
       - DB_TIMEZONE=Europe/Berlin
       - JWT_SECRET=lemongrass
+      - NATS_URL=nats://nats_broker:4222
+      - NATS_PG_CRUD_SUB=wal_listener.>

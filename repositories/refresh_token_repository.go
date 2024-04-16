@@ -7,21 +7,26 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/vingarcia/ksql"
 )
 
 type RefreshTokenRepository struct {
-	database *gorm.DB `di.inject:"util::database"`
+	database *ksql.DB `di.inject:"util::database"`
 }
+
+var tokensTable = ksql.NewTable("refresh_tokens", "id")
+
+//var ctx = ksql.InjectLogger(context.Background(), ksql.Logger)
 
 func (repository *RefreshTokenRepository) CreateToken(user domain.User) (*domain.RefreshToken, error) {
 	token := domain.RefreshToken{
-		UserID: user.ID,
-		Value:  util.RandomString(48),
+		UserID:    user.ID,
+		Value:     util.RandomString(48),
+		ExpiresAt: time.Now().Add(time.Hour * 24 * 14),
 	}
 
-	result := repository.database.Create(&token)
-	if err := result.Error; err != nil {
+	err := repository.database.Insert(ctx, tokensTable, &token)
+	if err != nil {
 		return nil, err
 	}
 	return &token, nil
@@ -29,17 +34,16 @@ func (repository *RefreshTokenRepository) CreateToken(user domain.User) (*domain
 
 func (repository *RefreshTokenRepository) GetTokenByValue(token string) (*domain.RefreshToken, error) {
 	var refreshToken domain.RefreshToken
-	result := repository.database.First(&refreshToken, "value = ?", token)
-	if result.Error != nil {
-		return &domain.RefreshToken{}, result.Error
+	err := repository.database.QueryOne(ctx, &refreshToken, "FROM refresh_tokens WHERE value = $1", token)
+	if err != nil {
+		return &domain.RefreshToken{}, err
 	}
-	if !time.Now().Before(refreshToken.CreatedAt.Add(time.Hour * 24 * 14)) {
+	if !time.Now().Before(refreshToken.ExpiresAt) {
 		return &domain.RefreshToken{}, errors.New("refresh token expired")
 	}
 	return &refreshToken, nil
 }
 
 func (repository *RefreshTokenRepository) DeleteToken(uuid uuid.UUID) error {
-	result := repository.database.Delete(&domain.RefreshToken{}, "id = ?", uuid)
-	return result.Error
+	return repository.database.Delete(ctx, tokensTable, uuid)
 }

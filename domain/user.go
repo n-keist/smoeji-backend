@@ -1,13 +1,18 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type (
 	User struct {
-		ID            uuid.UUID      `gorm:"type:uuid;primary_key;default:uuid_generate_v4()" json:"id"`
-		Email         string         `gorm:"uniqueIndex;not null" json:"email"`
-		Password      string         `gorm:"not null" json:"-"`
-		RefreshTokens []RefreshToken `json:"-"`
+		ID        uuid.UUID `ksql:"id" json:"id"`
+		Email     string    `ksql:"email" json:"email"`
+		Password  string    `ksql:"password" json:"-"`
+		UpdatedAt time.Time `ksql:"updated_at,timeNowUTC" json:"-"`
+		CreatedAt time.Time `ksql:"created_at,timeNowUTC/skipUpdates" json:"-"`
 	}
 
 	UserCreateRequest struct {

@@ -25,5 +25,6 @@ const (
 // UTILITIES
 const (
 	Util_Database  = "util::database"
+	Util_PubSub    = "util::pubsub"
 	Util_Validator = "util::validator"
 )

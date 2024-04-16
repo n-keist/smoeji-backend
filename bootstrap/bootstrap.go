@@ -1,14 +1,15 @@
 package bootstrap
 
 import (
+	"context"
+	"database/sql"
+	"embed"
 	"fmt"
 	"log"
 	"os"
 	"reflect"
-	db_plugins "smoeji/bootstrap/database/plugins"
 	"smoeji/controllers"
 	"smoeji/deps"
-	"smoeji/domain"
 	"smoeji/middleware"
 	"smoeji/repositories"
 	"smoeji/services"
@@ -16,13 +17,17 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/goioc/di"
 	"github.com/joho/godotenv"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	_ "github.com/lib/pq"
+	"github.com/nats-io/nats.go"
+	"github.com/pressly/goose/v3"
+	"github.com/vingarcia/ksql"
+	kpgx "github.com/vingarcia/ksql/adapters/kpgx5"
 )
 
 func Init() {
 	loadDotEnv()
 	connectPostgres()
+	connectNats()
 
 	validate := validator.New()
 	_, err := di.RegisterBeanInstance(deps.Util_Validator, validate)
@@ -93,6 +98,7 @@ func registerMiddlewares() {
 
 func loadDotEnv() {
 	err := godotenv.Load()
+
 	if err != nil {
 		if os.Getenv("SMOEJI") != "true" {
 			panic(err)
@@ -102,32 +108,71 @@ func loadDotEnv() {
 
 // Connects to Database configured from .env
 // Automatically registered in DI
-func connectPostgres() *gorm.DB {
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=%s",
-		os.Getenv("DB_HOST"),
+func connectPostgres() *ksql.DB {
+	connectionString := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_DATABASE"),
+		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
-		os.Getenv("DB_TIMEZONE"),
+		os.Getenv("DB_DATABASE"),
 	)
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	ctx := ksql.InjectLogger(context.Background(), ksql.Logger)
+
+	db, err := kpgx.New(ctx, connectionString, ksql.Config{})
 
 	if err != nil {
 		log.Fatalln("could not connect to db ", err)
 	}
 
-	db.Use(&db_plugins.UuidDbPlugin{})
+	migratePostgres()
 
-	db.AutoMigrate(&domain.User{}, &domain.RefreshToken{})
-
-	_, err = di.RegisterBeanInstance(deps.Util_Database, db)
+	_, err = di.RegisterBeanInstance(deps.Util_Database, &db)
 	if err != nil {
 		panic(err)
 	}
-	return db
+	return &db
+}
+
+func connectNats() *nats.Conn {
+	natsConnection, err := nats.Connect(os.Getenv("NATS_URL"))
+	if err != nil {
+		panic(err)
+	}
+	_, err = di.RegisterBeanInstance(deps.Util_PubSub, natsConnection)
+	if err != nil {
+		panic(err)
+	}
+	return natsConnection
+}
+
+//go:embed database/migrations/*.sql
+var embedMigrations embed.FS
+
+func migratePostgres() {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_DATABASE"))
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		panic(err)
+	}
+
+	defer db.Close()
+
+	goose.SetBaseFS(embedMigrations)
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		panic(err)
+	}
+
+	if err := goose.Up(db, "database/migrations"); err != nil {
+		panic(err)
+	}
 }
 
 // Registers a reflection Type in current DI Framework

@@ -8,10 +8,11 @@ import (
 
 type (
 	RefreshToken struct {
-		ID        uuid.UUID `gorm:"primaryKey;default:uuid_generate_v4()" json:"-"`
-		UserID    uuid.UUID `gorm:"not null;index"`
-		Value     string    `gorm:"not null"`
-		CreatedAt time.Time `json:"createdAt"`
+		ID        uuid.UUID `ksql:"id" json:"-"`
+		UserID    uuid.UUID `ksql:"user_id" json:"-"`
+		Value     string    `ksql:"value" json:"token"`
+		ExpiresAt time.Time `ksql:"expires_at" json:"expiresAt"`
+		CreatedAt time.Time `ksql:"created_at,timeNowUTC/skipUpdates" json:"createdAt"`
 	}
 
 	RefreshTokenRefreshRequest struct {
